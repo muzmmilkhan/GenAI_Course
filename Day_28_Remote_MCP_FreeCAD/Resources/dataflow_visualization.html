@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreeCAD MCP Server - Internal Data Flow & Protocol Architecture</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    pre::-webkit-scrollbar { height: 8px; width: 8px; }
+    pre::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    pre::-webkit-scrollbar-track { background: #f1f5f9; }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 antialiased p-6 sm:p-10 min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-10">
+
+    <!-- Header -->
+    <header class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="flex items-center gap-4">
+        <span class="p-4 rounded-2xl bg-indigo-50 text-indigo-600 text-3xl font-bold border border-indigo-100 shadow-xs">📐 ⇄ ⚡</span>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            FreeCAD Remote MCP Architecture & Internal Data Flow
+          </h1>
+          <p class="text-base text-slate-600 mt-2">
+            Clear visual guide: How FastMCP embeds into FastAPI (ASGI), how JSON-RPC 2.0 travels over HTTP/SSE, and how the WebSocket relays commands to FreeCAD.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- The 2 Core Puzzles Explained (Large Font Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Card 1 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-base border border-emerald-200 shadow-2xs">1</span>
+            <h2 class="font-bold text-slate-900 text-xl">Why Uvicorn & FastAPI for an MCP Server?</h2>
+          </div>
+          <p class="text-base text-slate-700 leading-relaxed mb-4">
+            In <code class="text-indigo-700 font-mono text-sm bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">remote_mcp_server.py</code>, you run <code class="text-emerald-700 font-mono text-sm bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">uvicorn.run(app)</code>. Why?
+          </p>
+          <p class="text-base text-slate-700 leading-relaxed mb-4">
+            Under the hood, <strong class="text-slate-900">FastMCP produces a Starlette ASGI application</strong> when calling <code class="text-slate-800 font-mono text-sm bg-slate-100 px-1.5 py-0.5 rounded">mcp.http_app(transport="sse")</code>. Because FastAPI is also built directly on Starlette/ASGI, it mounts FastMCP natively!
+          </p>
+        </div>
+        
+        <div class="bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-sm space-y-2 shadow-inner border border-slate-800">
+          <div class="text-slate-400 text-xs">// 1. FastMCP gives a Starlette ASGI sub-app</div>
+          <div><span class="text-purple-300 font-semibold">mcp_app</span> = mcp.http_app(transport=<span class="text-emerald-300">"sse"</span>, path=<span class="text-emerald-300">"/sse"</span>)</div>
+          <div class="text-slate-400 text-xs pt-1">// 2. FastAPI mounts it under /mcp</div>
+          <div><span class="text-blue-300 font-semibold">app</span> = FastAPI(lifespan=mcp_app.lifespan)</div>
+          <div>app.mount(<span class="text-amber-300">"/mcp"</span>, mcp_app)</div>
+          <div class="text-slate-400 text-xs pt-1">// 3. FastAPI also handles the FreeCAD WebSocket tunnel</div>
+          <div>app.add_api_websocket_route(<span class="text-amber-300">"/ws/agent"</span>, ...)</div>
+        </div>
+
+        <p class="text-sm font-medium text-slate-600 mt-4 bg-emerald-50 text-emerald-900 p-3 rounded-lg border border-emerald-200">
+          ✅ <strong>Compatibility Key:</strong> Both FastMCP and FastAPI share the same Python <strong>ASGI</strong> interface, allowing a single Uvicorn server to host both the MCP HTTP endpoints and your FreeCAD WebSocket agent!
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-base border border-blue-200 shadow-2xs">2</span>
+            <h2 class="font-bold text-slate-900 text-xl">How Does HTTP Carry JSON-RPC 2.0?</h2>
+          </div>
+          <p class="text-base text-slate-700 leading-relaxed mb-4">
+            MCP requires JSON-RPC 2.0 messages. But your diagram shows HTTP POST and SSE stream. How does the conversion happen?
+          </p>
+          <p class="text-base text-slate-700 leading-relaxed mb-4">
+            <strong class="text-slate-900">HTTP does not replace JSON-RPC.</strong> HTTP is merely the <em>transport envelope</em> (the delivery vehicle) carrying the JSON-RPC string inside its body.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-sm space-y-3">
+          <div class="flex items-start gap-3">
+            <span class="text-blue-700 font-bold shrink-0 text-sm bg-blue-100 px-2 py-0.5 rounded">1. Client Request:</span>
+            <span class="text-slate-800 text-sm"><code class="text-indigo-600 font-bold">POST /mcp/messages</code> $\rightarrow$ JSON-RPC 2.0 is in the <strong>HTTP Request Body</strong>.</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="text-purple-700 font-bold shrink-0 text-sm bg-purple-100 px-2 py-0.5 rounded">2. Server Stream:</span>
+            <span class="text-slate-800 text-sm"><code class="text-indigo-600 font-bold">GET /mcp/sse</code> $\rightarrow$ JSON-RPC 2.0 response streamed back as an <strong>SSE Event</strong>.</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="text-amber-800 font-bold shrink-0 text-sm bg-amber-100 px-2 py-0.5 rounded">3. Bridge Proxy:</span>
+            <span class="text-slate-800 text-sm"><code class="text-indigo-600 font-bold">npx mcp-remote</code> forwards Claude Desktop's local stdio to those HTTP endpoints.</span>
+          </div>
+        </div>
+
+        <p class="text-sm font-medium text-slate-600 mt-4 bg-blue-50 text-blue-900 p-3 rounded-lg border border-blue-200">
+          💡 <strong>No conversion loss:</strong> Claude Desktop writes JSON-RPC $\rightarrow$ <code class="text-blue-800">mcp-remote</code> POSTs it over HTTP $\rightarrow$ FastMCP deserializes the exact same JSON-RPC!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Interactive Step-by-Step Data Flow Visualizer -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-200">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Step-by-Step Wire Data Flow Explorer</h2>
+          <p class="text-base text-slate-600 mt-1">Click any step to inspect the exact wire payloads and message format at each hop.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="prevBtn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold rounded-xl border border-slate-300 transition shadow-xs">← Previous</button>
+          <button id="nextBtn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">Next Step →</button>
+        </div>
+      </div>
+
+      <!-- Step selection pills -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6" id="stepperTabs">
+        <button onclick="selectStep(0)" class="step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition active-tab bg-indigo-50 border-indigo-600 text-indigo-900 shadow-xs">
+          <div class="text-xs uppercase font-bold text-indigo-500">Step 1</div>
+          <div class="font-bold text-base mt-0.5">Claude Prompt</div>
+        </button>
+        <button onclick="selectStep(1)" class="step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition border-slate-200 text-slate-600 hover:bg-slate-50">
+          <div class="text-xs uppercase font-bold text-slate-400">Step 2</div>
+          <div class="font-bold text-base mt-0.5">mcp-remote Bridge</div>
+        </button>
+        <button onclick="selectStep(2)" class="step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition border-slate-200 text-slate-600 hover:bg-slate-50">
+          <div class="text-xs uppercase font-bold text-slate-400">Step 3</div>
+          <div class="font-bold text-base mt-0.5">FastAPI & FastMCP</div>
+        </button>
+        <button onclick="selectStep(3)" class="step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition border-slate-200 text-slate-600 hover:bg-slate-50">
+          <div class="text-xs uppercase font-bold text-slate-400">Step 4</div>
+          <div class="font-bold text-base mt-0.5">WebSocket Relay</div>
+        </button>
+        <button onclick="selectStep(4)" class="step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition border-slate-200 text-slate-600 hover:bg-slate-50">
+          <div class="text-xs uppercase font-bold text-slate-400">Step 5</div>
+          <div class="font-bold text-base mt-0.5">FreeCAD GUI Exec</div>
+        </button>
+      </div>
+
+      <!-- Step content panel -->
+      <div id="stepCard" class="bg-slate-50 border border-slate-200 rounded-xl p-5 sm:p-6 space-y-4">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Complete End-to-End Topology Map (White Background, Large Font) -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-slate-900">End-to-End System Architecture Breakdown</h2>
+        <p class="text-base text-slate-600 mt-1">Understanding the 3 distinct execution environments and how they communicate.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Box 1 -->
+        <div class="bg-slate-50 border-2 border-blue-200 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Environment 1</span>
+              <span class="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">User Laptop</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-lg mb-2">Claude Desktop + mcp-remote</h3>
+            <p class="text-sm text-slate-700 leading-relaxed mb-4">
+              Claude Desktop only supports local child processes via <code class="bg-white border border-slate-200 px-1 rounded text-xs font-mono">stdio</code>. To talk to the cloud, Claude config spawns <code class="text-indigo-700 font-mono text-xs bg-indigo-50 px-1.5 py-0.5 rounded">npx -y mcp-remote &lt;url&gt;</code>.
+            </p>
+          </div>
+          <div class="border-t border-slate-200 pt-3 text-xs font-mono text-slate-700 space-y-1 bg-white p-3 rounded-xl border">
+            <div><strong class="text-slate-900">Standard I/O:</strong> Stdin / Stdout (JSON-RPC)</div>
+            <div><strong class="text-slate-900">Network:</strong> HTTPS POST & SSE Client</div>
+          </div>
+        </div>
+
+        <!-- Box 2 -->
+        <div class="bg-slate-50 border-2 border-emerald-200 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Environment 2</span>
+              <span class="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">Cloud Host (Render)</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-lg mb-2">FastAPI + FastMCP (remote_mcp_server.py)</h3>
+            <p class="text-sm text-slate-700 leading-relaxed mb-4">
+              Managed by <code class="bg-white border border-slate-200 px-1 rounded text-xs font-mono">uvicorn</code>. Hosts the Starlette FastMCP app on <code class="text-indigo-700 font-mono text-xs bg-indigo-50 px-1.5 py-0.5 rounded">/mcp</code> and maintains the WebSocket hub on <code class="text-indigo-700 font-mono text-xs bg-indigo-50 px-1.5 py-0.5 rounded">/ws/agent</code>.
+            </p>
+          </div>
+          <div class="border-t border-slate-200 pt-3 text-xs font-mono text-slate-700 space-y-1 bg-white p-3 rounded-xl border">
+            <div><strong class="text-slate-900">FastMCP Tools:</strong> @mcp.tool() decorators</div>
+            <div><strong class="text-slate-900">Future Registry:</strong> Maps UUIDs to active requests</div>
+          </div>
+        </div>
+
+        <!-- Box 3 -->
+        <div class="bg-slate-50 border-2 border-purple-200 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Environment 3</span>
+              <span class="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">FreeCAD App Process</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-lg mb-2">PySide QWebSocket Agent (freecad_server.py)</h3>
+            <p class="text-sm text-slate-700 leading-relaxed mb-4">
+              Runs as a macro inside FreeCAD. Opens an <em>outbound</em> tunnel to Render. Pops CAD scripts and runs <code class="text-indigo-700 font-mono text-xs bg-indigo-50 px-1.5 py-0.5 rounded">exec(code)</code> safely in FreeCAD's Qt GUI main thread.
+            </p>
+          </div>
+          <div class="border-t border-slate-200 pt-3 text-xs font-mono text-slate-700 space-y-1 bg-white p-3 rounded-xl border">
+            <div><strong class="text-slate-900">Execution:</strong> safe_execute(code)</div>
+            <div><strong class="text-slate-900">Context:</strong> App, Gui, Part, ActiveDoc</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    const steps = [
+      {
+        idx: 0,
+        badge: "Step 1: Claude Desktop UI",
+        badgeStyle: "bg-blue-100 text-blue-900 border border-blue-300",
+        title: "Claude decides to invoke execute_freecad_python()",
+        protocol: "Stdio (stdout) • JSON-RPC 2.0",
+        description: "When the user prompts 'Draw a 50mm cylinder in FreeCAD', Claude translates this into FreeCAD Python code. Claude Desktop formats this invocation into a standard JSON-RPC 2.0 request and emits it to stdout.",
+        payloadTitle: "JSON-RPC 2.0 written to stdout by Claude Desktop:",
+        payload: `{
+  "jsonrpc": "2.0",
+  "id": "req-9841",
+  "method": "tools/call",
+  "params": {
+    "name": "execute_freecad_python",
+    "arguments": {
+      "code": "import Part\\ncyl = Part.makeCylinder(10, 50)\\nPart.show(cyl)\\nApp.ActiveDocument.recompute()"
+    }
+  }
+}`
+      },
+      {
+        idx: 1,
+        badge: "Step 2: Client-side Proxy",
+        badgeStyle: "bg-amber-100 text-amber-900 border border-amber-300",
+        title: "mcp-remote wraps JSON-RPC into an HTTP POST request",
+        protocol: "HTTP POST over TLS (https://.../mcp/messages)",
+        description: "Claude Desktop spawned `npx -y mcp-remote https://freecadmcpserver.onrender.com/mcp/sse`. The `mcp-remote` proxy process reads the JSON-RPC from stdin, attaches the active session ID, and issues an HTTP POST request where the body IS the JSON-RPC 2.0 message.",
+        payloadTitle: "HTTP POST Request (JSON-RPC inside the HTTP Body):",
+        payload: `POST /mcp/messages?sessionId=b91a7891-8dc1 HTTP/1.1
+Host: freecadmcpserver.onrender.com
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": "req-9841",
+  "method": "tools/call",
+  "params": {
+    "name": "execute_freecad_python",
+    "arguments": {
+      "code": "import Part\\ncyl = Part.makeCylinder(10, 50)\\nPart.show(cyl)..."
+    }
+  }
+}`
+      },
+      {
+        idx: 2,
+        badge: "Step 3: Cloud Host (FastAPI + FastMCP)",
+        badgeStyle: "bg-emerald-100 text-emerald-900 border border-emerald-300",
+        title: "FastAPI routes to FastMCP tool handler",
+        protocol: "ASGI Internal Scope & Asyncio Future",
+        description: "Uvicorn receives the HTTP POST on `/mcp/messages`. Because of `app.mount('/mcp', mcp_app)`, FastAPI routes the request directly to Starlette/FastMCP. FastMCP extracts the JSON-RPC payload, identifies `execute_freecad_python`, and invokes the async function. The tool generates a UUID and registers an asyncio.Future awaiting the result.",
+        payloadTitle: "Code executed inside server/remote_mcp_server.py:",
+        payload: `@mcp.tool()
+async def execute_freecad_python(code: str) -> str:
+    request_id = uuid.uuid4().hex  # e.g. "8f93a1c0d54e48..."
+    future = asyncio.get_running_loop().create_future()
+    pending_requests[request_id] = future
+    
+    # Send WebSocket frame to FreeCAD laptop
+    async with agent_lock:
+        await active_agent.send_json({
+            "action": "execute",
+            "code": code,
+            "request_id": request_id
+        })
+    
+    # Await response from WebSocket background loop
+    response = await asyncio.wait_for(future, timeout=30.0)
+    return response.get("stdout")`
+      },
+      {
+        idx: 3,
+        badge: "Step 4: WebSocket Tunnel",
+        badgeStyle: "bg-indigo-100 text-indigo-900 border border-indigo-300",
+        title: "Command relayed down persistent WebSocket to FreeCAD",
+        protocol: "WebSocket (WSS) JSON Frame",
+        description: "Because your laptop is behind home/office NAT firewalls, Render cannot make direct inbound calls. Instead, FreeCAD previously connected *outward* to `/ws/agent`. The server pushes a JSON text frame down this persistent bidirectional WebSocket connection.",
+        payloadTitle: "JSON frame transmitted over wss://.../ws/agent:",
+        payload: `{
+  "action": "execute",
+  "code": "import Part\\ncyl = Part.makeCylinder(10, 50)\\nPart.show(cyl)\\nApp.ActiveDocument.recompute()",
+  "request_id": "8f93a1c0d54e48b8a927d620572eab3a"
+}`
+      },
+      {
+        idx: 4,
+        badge: "Step 5: FreeCAD GUI & Response Stream",
+        badgeStyle: "bg-purple-100 text-purple-900 border border-purple-300",
+        title: "FreeCAD executes Python code and returns output via SSE",
+        protocol: "safe_execute() $\\rightarrow$ WebSocket $\\rightarrow$ SSE JSON-RPC 2.0",
+        description: "Inside FreeCAD, `FreeCADWebSocketAgent.on_message_received` invokes `safe_execute(code)`, which executes in FreeCAD's Qt GUI main thread and recomputes the 3D model. The stdout/stderr are sent back over WebSocket with `request_id`. The server resolves the pending future, FastMCP wraps the string in a JSON-RPC 2.0 response, and streams it back via SSE!",
+        payloadTitle: "SSE Data Stream delivered to Claude Desktop:",
+        payload: `event: message
+data: {
+  "jsonrpc": "2.0",
+  "id": "req-9841",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "### Execution Success\\n**Stdout:**\\n\`\`\`\\nCylinder created and 3D viewport recomputed.\\n\`\`\`"
+      }
+    ]
+  }
+}`
+      }
+    ];
+
+    let current = 0;
+
+    function render(idx) {
+      const step = steps[idx];
+      const card = document.getElementById("stepCard");
+      card.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1 rounded-lg text-xs font-bold ${step.badgeStyle}">${step.badge}</span>
+            <h3 class="font-bold text-slate-900 text-lg">${step.title}</h3>
+          </div>
+          <span class="text-xs font-mono font-semibold text-slate-600 bg-white border border-slate-300 px-2.5 py-1 rounded-md shadow-2xs">${step.protocol}</span>
+        </div>
+        
+        <p class="text-base text-slate-700 leading-relaxed">${step.description}</p>
+
+        <div class="pt-2">
+          <div class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">${step.payloadTitle}</div>
+          <pre class="bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-sm overflow-x-auto shadow-md border border-slate-800 leading-normal"><code>${escapeXml(step.payload)}</code></pre>
+        </div>
+      `;
+
+      document.querySelectorAll(".step-tab").forEach((tab, i) => {
+        if (i === idx) {
+          tab.className = "step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition active-tab bg-indigo-50 border-indigo-600 text-indigo-900 shadow-xs";
+        } else {
+          tab.className = "step-tab text-left p-3.5 rounded-xl border-2 text-sm font-medium transition border-slate-200 text-slate-600 hover:bg-slate-50";
+        }
+      });
+
+      document.getElementById("prevBtn").disabled = idx === 0;
+      document.getElementById("prevBtn").classList.toggle("opacity-50", idx === 0);
+      document.getElementById("nextBtn").innerText = idx === steps.length - 1 ? "Start Over ↺" : "Next Step →";
+    }
+
+    function escapeXml(str) {
+      return str.replace(/[<>&'"]/g, c => {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+        }
+      });
+    }
+
+    function selectStep(i) {
+      current = i;
+      render(current);
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (current > 0) { current--; render(current); }
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if (current < steps.length - 1) { current++; render(current); }
+      else { current = 0; render(current); }
+    });
+
+    render(0);
+  </script>
+</body>
+</html>

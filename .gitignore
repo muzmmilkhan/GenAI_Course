@@ -1,0 +1,25 @@
+# secrets
+.env
+# python / uv
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+# runtime files created when you run the lessons
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.log
+.adk/
+db/
+qdrant_storage/
+# keep the real data files that ship with the course
+!Day_29_Deep_Agents/Deep_Agents/deepaudit/data/financial_audit.db
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

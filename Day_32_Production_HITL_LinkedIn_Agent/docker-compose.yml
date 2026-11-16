@@ -1,0 +1,35 @@
+services:
+  hitl-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${HITL_AGENT_IMAGE:-hitl-agent:latest}
+    container_name: hitl-agent-service
+    ports:
+      - "8000:8000"
+    # Loads .env file if it exists, but does not crash if absent
+    env_file:
+      - path: .env
+        required: false
+    # Direct environment variable mappings (from shell or CI/CD secrets)
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - LINKEDIN_ACCESS_TOKEN=${LINKEDIN_ACCESS_TOKEN:-}
+      - LINKEDIN_AUTHOR_URN=${LINKEDIN_AUTHOR_URN:-}
+      - LINKEDIN_API_VERSION=${LINKEDIN_API_VERSION:-202511}
+      - BASE_URL=${BASE_URL:-http://localhost:8000}
+      - NOTIFICATION_EMAIL=${NOTIFICATION_EMAIL:-sachin19566@gmail.com}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    volumes:
+      # Persistent volume for SQLite checkpoints and metadata
+      - ./data:/app/data:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

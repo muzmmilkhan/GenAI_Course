@@ -1,0 +1,148 @@
+name: HITL Agent — Build & Deploy to AWS ECR / EC2
+
+on:
+  push:
+    branches: [devlopment]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION || secrets.AWS_DEFAULT_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME || 'hitl-agent' }}
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Continuous Integration (Build & Push Docker Image to ECR)
+  # ────────────────────────────────────────────────────────────────────────────
+  Continuous-Integration:
+    name: Build & Push Image to Amazon ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Docker Image to Amazon ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Building Docker image ${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}..."
+          docker build -t ${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} -t ${REGISTRY}/${ECR_REPOSITORY}:latest .
+          echo "Pushing images to Amazon ECR..."
+          docker push ${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          docker push ${REGISTRY}/${ECR_REPOSITORY}:latest
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Continuous Deployment (Pull & Run on EC2)
+  # ────────────────────────────────────────────────────────────────────────────
+  Continuous-Deployment:
+    name: Pull & Deploy on AWS EC2
+    needs: Continuous-Integration
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate .env from GitHub Secrets
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+          LINKEDIN_API_VERSION: ${{ secrets.LINKEDIN_API_VERSION || '202511' }}
+          BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8000' }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL || 'sachin19566@gmail.com' }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          echo "Configuring environment file from GitHub Secrets..."
+          if [ -n "$ENV_CONTENT" ]; then
+            echo "Populating .env from secrets.ENV_FILE..."
+            printf '%s\n' "$ENV_CONTENT" > .env
+          else
+            echo "Populating .env from individual GitHub secrets..."
+            {
+              echo "GOOGLE_API_KEY=${GOOGLE_API_KEY}"
+              echo "GEMINI_MODEL=${GEMINI_MODEL}"
+              echo "LINKEDIN_ACCESS_TOKEN=${LINKEDIN_ACCESS_TOKEN}"
+              echo "LINKEDIN_AUTHOR_URN=${LINKEDIN_AUTHOR_URN}"
+              echo "LINKEDIN_API_VERSION=${LINKEDIN_API_VERSION}"
+              echo "BASE_URL=${BASE_URL}"
+              echo "NOTIFICATION_EMAIL=${NOTIFICATION_EMAIL}"
+              echo "SMTP_HOST=${SMTP_HOST}"
+              echo "SMTP_PORT=${SMTP_PORT}"
+              echo "SMTP_USER=${SMTP_USER}"
+              echo "SMTP_PASSWORD=${SMTP_PASSWORD}"
+            } > .env
+          fi
+          # Protect environment file permissions
+          chmod 600 .env
+          echo ".env generated successfully (lines: $(wc -l < .env))"
+
+      - name: Pull Latest Docker Image & Restart Application
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          echo "Pulling latest image ${REGISTRY}/${ECR_REPOSITORY}:latest..."
+          docker pull ${REGISTRY}/${ECR_REPOSITORY}:latest
+
+          echo "Ensuring persistent storage directory exists..."
+          mkdir -p $(pwd)/data
+
+          echo "Stopping previous container if running..."
+          docker stop hitl-agent-service || true
+          docker rm hitl-agent-service || true
+
+          echo "Starting newly deployed container..."
+          docker run -d \
+            --name hitl-agent-service \
+            --restart unless-stopped \
+            -p 8000:8000 \
+            --env-file .env \
+            -v $(pwd)/data:/app/data \
+            ${REGISTRY}/${ECR_REPOSITORY}:latest
+
+          echo "Cleaning up dangling images..."
+          docker image prune -f
+
+      - name: Verify Service Health
+        run: |
+          echo "Waiting for service to initialize..."
+          for i in {1..6}; do
+            if curl -sf http://localhost:8000/api/health > /dev/null; then
+              echo "Health check passed!"
+              curl -s http://localhost:8000/api/health
+              exit 0
+            fi
+            echo "Waiting for health check (attempt $i/6)..."
+            sleep 3
+          done
+          echo "Health check failed. Container logs:"
+          docker logs hitl-agent-service
+          exit 1

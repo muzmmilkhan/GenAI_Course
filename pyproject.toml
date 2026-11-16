@@ -1,0 +1,132 @@
+# ONE uv project for the whole course.
+#   uv sync                      -> installs everything needed for Day 01 - Day 38
+#   uv sync --group finetune     -> extra packages for Day 35 (needs an NVIDIA GPU, e.g. Google Colab)
+#   uv sync --group freecad      -> extra Qt package for Day 28 (local FreeCAD bridge testing)
+[project]
+name = "genai-course"
+version = "1.0.0"
+description = "Day-by-day Generative AI course: LLMs -> LangChain -> RAG -> LangGraph -> Agents -> MCP -> Evaluation -> Fine-tuning -> Deployment"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # ---------- Notebooks & common utilities ----------
+    "jupyterlab",
+    "ipykernel",
+    "ipywidgets",
+    "python-dotenv",
+    "rich",
+    "nest-asyncio",
+    "requests",
+    "httpx",
+    "pyyaml",
+    "pytest",
+    "matplotlib",
+    "plotly",
+    "pandas",
+    "scikit-learn",
+    "grandalf",
+    "python-docx",
+    "python-pptx",
+    # ---------- LangChain ecosystem (Days 03-09, 19-24) ----------
+    "langchain>=1.3.14",
+    "langchain-classic",
+    "langchain-community>=0.4.1",
+    "langchain-experimental>=0.4.1",
+    "langchain-text-splitters>=1.1.3",
+    "langchain-openai>=1.2.1",
+    "langchain-google-genai>=4.2.2",
+    "langchain-groq>=1.1.2",
+    "langchain-cohere>=0.6.0",
+    "langchain-huggingface>=1.2.2",
+    "langchain-chroma>=1.1.0",
+    "langchain-qdrant",
+    "langchain-mcp-adapters>=0.2.2",
+    "langchain-opentutorial>=0.0.9",
+    # ---------- LangGraph & agents (Days 11-32) ----------
+    "langgraph>=1.1.5",
+    "langgraph-checkpoint-sqlite>=3.0.3",
+    "langgraph-checkpoint-postgres>=3.1.0",
+    "langgraph-store-mongodb>=0.3.0",
+    "aiosqlite",
+    "deepagents>=0.6.8",
+    # ---------- LLM provider SDKs ----------
+    "openai",
+    "anthropic",
+    "groq",
+    "google-genai",
+    # ---------- Embeddings, vector stores, document loading (RAG) ----------
+    "sentence-transformers",
+    "transformers",
+    "torch",
+    "torchvision",
+    "tiktoken",
+    "faiss-cpu",
+    "chromadb",
+    "qdrant-client",
+    "rank-bm25",
+    "pypdf",
+    "pdfminer-six",
+    "pdf2image",
+    "pillow",
+    "unstructured[all-docs]",
+    "pydantic[email]",
+    "pydantic-settings",
+    "youtube-transcript-api",
+    "beautifulsoup4",
+    # ---------- Tools used inside agents ----------
+    "ddgs",
+    "google-search-results",
+    "twilio",
+    "edge-tts",
+    "assemblyai",
+    "cartesia",
+    "mysql-connector-python==9.0.0",
+    "psycopg-binary",
+    "psycopg2-binary",
+    "asyncpg",
+    "redis",
+    "sqlmodel",
+    "greenlet",
+    "boto3",
+    "shap",
+    "prompt-inspector-ux",
+    # ---------- Web apps & APIs ----------
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "jinja2",
+    "streamlit",
+    "websockets",
+    "python-jose[cryptography]",
+    "passlib",
+    "bcrypt",
+    "google-auth-oauthlib",
+    "google-auth-httplib2",
+    # ---------- MCP (Days 25-29) ----------
+    "mcp>=1.26.0,<2",
+    "fastmcp>=3.4.2,<4",
+    # ---------- Evaluation (Day 34) ----------
+    "deepeval>=4.3.1",
+    # ---------- Google ADK (Days 36-37) ----------
+    "google-adk[eval]>=2.6.2",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.156.0",
+    "cloudpickle",
+]
+
+[dependency-groups]
+# Day 35 - Fine-tuning. Best on a CUDA GPU (Google Colab). Install with: uv sync --group finetune
+finetune = [
+    "peft>=0.11.1",
+    "trl>=0.9.4",
+    "accelerate>=0.31.0",
+    "datasets>=2.19.0",
+    "bitsandbytes>=0.43.1; sys_platform == 'linux'",
+]
+# Day 28 - FreeCAD local Qt bridge testing. Install with: uv sync --group freecad
+freecad = [
+    "pyside6>=6.11.1",
+]
+
+[tool.uv]
+# This is a course workspace, not an installable library.
+package = false

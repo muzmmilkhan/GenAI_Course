@@ -1,0 +1,119 @@
+{
+  "topic": "Solar System: Planetary Exploration",
+  "target_audience": "Executive Stakeholders and Science Policy Advisors",
+  "total_slides": 8,
+  "slides": [
+    {
+      "slide_number": 1,
+      "section_tag": "01 // INTRODUCTION",
+      "title": "Solar System: Planetary Exploration",
+      "layout": "title",
+      "needs_image": false,
+      "image_position": "none",
+      "visual_prompt": null,
+      "planned_key_points": [
+        "Solar System Overview",
+        "Planetary Exploration History",
+        "Future Missions"
+      ]
+    },
+    {
+      "slide_number": 2,
+      "section_tag": "02 // MECHANICS",
+      "title": "How the Solar System Works",
+      "layout": "image_right",
+      "needs_image": true,
+      "image_position": "right",
+      "visual_prompt": "A high-resolution, cinematic 3D illustration of the solar system showing the Sun at the center with planets in their orbits, glowing orbital paths, and a deep space background with subtle nebula clouds.",
+      "planned_key_points": [
+        "Gravitational Dynamics: How the Sun anchors the system",
+        "Orbital Mechanics: The dance of planets and moons",
+        "Energy Distribution: Solar radiation and planetary heat"
+      ]
+    },
+    {
+      "slide_number": 3,
+      "section_tag": "03 // ORBITS",
+      "title": "Planetary Orbits & Dynamics",
+      "layout": "image_left",
+      "needs_image": true,
+      "image_position": "left",
+      "visual_prompt": "A detailed scientific diagram showing elliptical planetary orbits around the Sun, with vector arrows indicating velocity and gravitational pull, clean white lines on a dark blue background.",
+      "planned_key_points": [
+        "Kepler's Laws: Understanding elliptical paths",
+        "Orbital Resonance: Gravitational interactions between bodies",
+        "Velocity & Distance: The relationship between speed and orbit duration"
+      ]
+    },
+    {
+      "slide_number": 4,
+      "section_tag": "04 // COMPARISON",
+      "title": "Comparative Planetary Analysis",
+      "layout": "table",
+      "needs_image": true,
+      "image_position": "table_companion",
+      "visual_prompt": "A clean, professional infographic comparing the characteristics of inner terrestrial planets versus outer gas giants, using icons for temperature, size, and atmosphere.",
+      "planned_key_points": [
+        "Inner vs Outer Planets Comparison",
+        "Atmospheric Composition Table",
+        "Gravity and Surface Conditions"
+      ]
+    },
+    {
+      "slide_number": 5,
+      "section_tag": "05 // FORMATION",
+      "title": "Solar System Formation",
+      "layout": "image_left",
+      "needs_image": true,
+      "image_position": "left",
+      "visual_prompt": "A dramatic artistic representation of the early solar system, showing a swirling protoplanetary disk around a young, bright Sun, with glowing dust and gas clouds.",
+      "planned_key_points": [
+        "Nebular Hypothesis: The birth of the solar system from a molecular cloud",
+        "Accretion Process: How dust and gas formed protoplanets",
+        "Early Solar System: The chaotic environment of the young Sun"
+      ]
+    },
+    {
+      "slide_number": 6,
+      "section_tag": "06 // EVOLUTION",
+      "title": "Planetary Evolution",
+      "layout": "image_right",
+      "needs_image": true,
+      "image_position": "right",
+      "visual_prompt": "A split-screen illustration showing the evolution of a planet from a molten, volcanic state to a cooled, geologically active world with an atmosphere.",
+      "planned_key_points": [
+        "Planetary Differentiation: How cores, mantles, and crusts formed",
+        "Geological Activity: Volcanism and tectonic shifts over eons",
+        "Atmospheric Evolution: The transition from primordial to secondary atmospheres"
+      ]
+    },
+    {
+      "slide_number": 7,
+      "section_tag": "07 // CAPABILITIES",
+      "title": "Earth & Jupiter: Exploration Capabilities",
+      "layout": "cards",
+      "needs_image": false,
+      "image_position": "none",
+      "visual_prompt": null,
+      "planned_key_points": [
+        "Earth's Habitable Zone: Conditions for life",
+        "Jupiter's Gravitational Influence: Protecting the inner system",
+        "Exploration Challenges: Distance and radiation shielding"
+      ]
+    },
+    {
+      "slide_number": 8,
+      "section_tag": "08 // CONCLUSION",
+      "title": "Executive Summary & Future Directions",
+      "layout": "ending",
+      "needs_image": false,
+      "image_position": "none",
+      "visual_prompt": null,
+      "planned_key_points": [
+        "Summary of Key Findings",
+        "Upcoming Exploration Missions (Europa Clipper, Mars Sample Return)",
+        "The Future of Interplanetary Travel"
+      ]
+    }
+  ]
+}

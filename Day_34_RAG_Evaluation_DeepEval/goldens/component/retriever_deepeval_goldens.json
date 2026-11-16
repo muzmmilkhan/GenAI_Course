@@ -1,0 +1,37 @@
+[
+  {
+    "id": "g_synth_001",
+    "query": "How much did Bank of America agree to pay for FleetBoston Financial Corp. in the biggest deal of 2003?",
+    "ideal_answer": "more than $40 billion",
+    "source": "JPM_Annual_2023.pdf",
+    "context_sample": ". Now headquartered in Chicago, the new Bank One became the largest bank in the Midwest, second largest among credit card companies and fourth largest in the United States. But the merger didn’t go as..."
+  },
+  {
+    "id": "g_synth_002",
+    "query": "How many active digital customers does the bank have?",
+    "ideal_answer": "67 million",
+    "source": "JPM_Annual_2023.pdf",
+    "context_sample": ". consumers and 6.4 million small businesses  67 million active digital customers8, including 54 million active mobile customers9  Primary bank relationships for ~80% of consumer checking accounts ..."
+  },
+  {
+    "id": "g_synth_003",
+    "query": "How much has EY globally invested in next-generation Assurance platforms?",
+    "ideal_answer": "over DKK 10 billion",
+    "source": "EY_Financial_report_2025.pdf",
+    "context_sample": ". Globally, EY has invested over DKK 10 billion in next-generation Assurance platforms, integrating AI at scale, advanced analytics and intuitive user experiences. Tools like EY Canvas, EY Helix and I..."
+  },
+  {
+    "id": "g_synth_004",
+    "query": "What does our expert team deliver?",
+    "ideal_answer": "insights and solutions for informed decision-making, compliance, and risk mitigation",
+    "source": "EY_Financial_report_2025.pdf",
+    "context_sample": ". Our expert team delivers insights and solutions for informed decision-making, compliance, and risk mitigation. By leveraging advanced technology and AI, we enhance our service delivery with real-tim..."
+  },
+  {
+    "id": "g_synth_005",
+    "query": "How many people did the company directly hire to redeploy individuals whose jobs were lost because of the merger?",
+    "ideal_answer": "over 5,000 people",
+    "source": "JPM_Annual_2023.pdf",
+    "context_sample": ". We did everything we could to redeploy individuals whose jobs were lost because of the merger (we directly hired over 5,000 people). Our approach has always been to go into an acquisition knowing we..."
+  }
+]
