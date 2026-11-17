@@ -6,6 +6,7 @@ stack traces, and duration metrics.
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -60,6 +61,9 @@ def run_local_tests(
             cmd.append(test_target)
     else:
         return f"Error: Unsupported test framework '{framework}'. Supported: 'pytest', 'unittest', 'npm', 'jest', 'vitest', 'playwright'."
+
+    # On Windows 'npm'/'npx' are .cmd files; shutil.which finds the real path on every OS
+    cmd[0] = shutil.which(cmd[0]) or cmd[0]
 
     start_time = time.time()
     try:

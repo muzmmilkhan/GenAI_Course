@@ -86,7 +86,7 @@ RAG_EVAL/
 │
 ├── goldens/                     # Ground Truth Datasets (Organized by Evaluation Level)
 │   ├── component/               # Component-level evaluation datasets
-│   │   ├── retriever_goldens.json         # Base retriever queries and filing citations
+│   │   ├── retriever_goldens_v1.json         # Base retriever queries and filing citations
 │   │   ├── retriever_goldens_v0.json      # Preserved baseline dataset (V0)
 │   │   ├── retriever_goldens_v1.json      # Verified high-accuracy PDF ground-truth dataset (V1)
 │   │   ├── retriever_deepeval_goldens.json# Synthesized draft goldens
@@ -240,7 +240,7 @@ All datasets are hierarchically organized inside `goldens/` by evaluation level:
 | File                                      | Purpose                                                                                    | Key Fields                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
 | `retriever_goldens_v1.json`             | **Verified V1 Dataset** grounded in actual PDF filings (Recall: 90%, Precision: 87%) | `id`, `query`, `ideal_answer`, `source`, `pdf_file`       |
-| `retriever_goldens.json` / `_v0.json` | Baseline V0 reference dataset for regression tracking                                      | `id`, `query`, `ideal_answer`, `source`                     |
+| `retriever_goldens_v1.json` / `_v0.json` | Baseline V0 reference dataset for regression tracking                                      | `id`, `query`, `ideal_answer`, `source`                     |
 | `retriever_deepeval_goldens.json`       | Auto-generated synthetic candidates from indexed chunks                                    | `id`, `query`, `ideal_answer`, `source`, `context_sample` |
 | `faithfulness_dataset.json`             | Ground-truth context chunks for isolated generator evaluation                              | `query`, `ideal_context`, `source_sessions`                   |
 
@@ -300,9 +300,9 @@ This synthetic dataset serves three essential downstream functions:
 - **Faithfulness & Hallucination Testing (`eval_rag_pipeline.py`):** Provides verified ground-truth contexts to benchmark whether the generator introduces hallucinations or distorts reported financial figures.
 - **Continuous Corpus Expansion:** When new financial documents or quarterly earnings are added to `data/`, running this script instantly bootstraps a refreshed, aligned test suite without requiring manual annotation.
 
-#### ⚖️ Key Differences: `retriever_goldens.json` vs. `retriever_deepeval_goldens.json`
+#### ⚖️ Key Differences: `retriever_goldens_v1.json` vs. `retriever_deepeval_goldens.json`
 
-| Dimension               | `retriever_goldens.json`                                                                    | `retriever_deepeval_goldens.json`                                                      |
+| Dimension               | `retriever_goldens_v1.json`                                                                    | `retriever_deepeval_goldens.json`                                                      |
 | ----------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | **Dataset Type**  | **Curated Baseline (Gold Standard)**                                                    | **Automated Synthetic Dataset**                                                    |
 | **Authoring**     | Manually curated & verified domain questions                                                  | Generated programmatically via `python goldens/generate_goldens.py`                    |
@@ -315,7 +315,7 @@ This synthetic dataset serves three essential downstream functions:
 
 1. When new financial PDFs (e.g. quarterly earnings releases) are ingested, run `python goldens/generate_goldens.py` to auto-generate `retriever_deepeval_goldens.json`.
 2. Inspect and validate the generated query-answer pairs.
-3. Promote high-value synthetic candidates into `retriever_goldens.json` to continuously expand the permanent evaluation suite.
+3. Promote high-value synthetic candidates into `retriever_goldens_v1.json` to continuously expand the permanent evaluation suite.
 
 ---
 
@@ -340,7 +340,7 @@ python main.py eval --retriever-v1
 
 ### 2. Baseline Retriever Evaluation (V0 Benchmark)
 
-Evaluates on the legacy baseline dataset (`goldens/component/retriever_goldens.json`):
+Evaluates on the legacy baseline dataset (`goldens/component/retriever_goldens_v1.json`):
 
 ```bash
 python -m evals.component.eval_retriever

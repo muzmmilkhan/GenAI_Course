@@ -23,3 +23,6 @@ qdrant_storage/
 .DS_Store
 .idea/
 .vscode/
+# PDFs copied into the RAG inboxes by students (originals live in shared_data/)
+Day_33_Production_RAG_Pipeline/data/*.pdf
+Day_34_RAG_Evaluation_DeepEval/data/*.pdf

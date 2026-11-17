@@ -1,34 +1,32 @@
 # Generative AI
 
 
-## 1. One-time setup (10 minutes)
+## 1. How setup works in this course (install as you learn)
 
-1. **Install uv** (Python package manager) - skip if `uv --version` already works:
+There is **no "install everything" step**. Instead you build your own Python project, one day at a time:
+
+1. **Day 00** (once, ~15 minutes): install `uv`, create your project with `uv init`, add your first packages and your `.env` file.
+   👉 Start here: [`Day_00_Setup_uv_and_Python/00_START_HERE.md`](Day_00_Setup_uv_and_Python/00_START_HERE.md)
+2. **Every day after that** begins with **📦 Step 1 – Install today's packages** in its `00_START_HERE.md`, for example:
    ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh      # macOS / Linux
+   uv add langchain-chroma faiss-cpu       # Day 07
    ```
-2. **Install everything** (Python 3.12 is downloaded automatically). Run this inside this `GenAI_Course` folder:
-   ```bash
-   uv sync
-   ```
-   This creates `.venv/` and installs every library used in Day 01 - Day 38.
-   - Day 35 Fine-tuning extras (GPU): `uv sync --group finetune`
-   - Day 28 FreeCAD extras: `uv sync --group freecad`
-3. **Add your API keys:**
-   ```bash
-   cp .env.example .env
-   ```
-   Open `.env` and fill in only the keys you need for today (each day's guide tells you which). You do **not** need all of them.
-   Every script and notebook finds this single `.env` automatically.
-4. **(Optional) system tools** used by a few days:
-   ```bash
-   brew install poppler tesseract libmagic     # Day 08 multi-modal RAG, Day 33 PDF -> image
-   ```
-   Docker Desktop is used on Days 16, 25, 32 and 33. Node.js (`npx`) on Day 27.
+   You see exactly which library each lesson needs and why. Installs always use the **latest** versions.
+3. If an install or import fails, every day has a **🧯 Something went wrong?** box with the real error messages and their fixes.
+4. **Days 34, 36 and 37 get their own small environment** inside their Day folder. With the latest versions, DeepEval and Google ADK
+   need library versions that clash with LangChain's, so (like real teams) we keep those apps separate. Each of those days explains why.
+
+**🪟 Windows, 🍎 macOS and 🐧 Linux are all supported.** Windows users: use PowerShell and run `setx PYTHONUTF8 1` once (Day 00 explains why).
+Extra system tools for a few days (Poppler/Tesseract for Days 08 & 33, Docker Desktop for Days 16, 25, 32, 33, Node.js for Day 27) - install commands for every OS are in Day 00.
+
+> 👩‍🏫 **Teachers:** `instructor/` contains the tested `pyproject.toml` + `uv.lock` of every environment (main, Day 34, Day 36, Day 37) plus an all-in-one backup.
+> See [`instructor/README.md`](instructor/README.md) for how to repair a broken student environment.
 
 ## 2. How to run a lesson
 
 Every Day folder has a **`00_START_HERE.md`** that lists the lessons in order and the exact command for each one.
+
+🐍 **New to Python?** Every Day folder also has **`00_python_basics.ipynb`** — start with it! It teaches only the Python used in that day (variables → lists → functions → dicts → classes → async → …) in very small steps, with comments, practice exercises and solutions. It needs no API key and no internet.
 
 ```bash
 cd Day_03_LLMs_ChatModels_and_Embeddings      # always run from INSIDE the day folder
@@ -42,6 +40,12 @@ or start Jupyter with `uv run jupyter lab` from the course root.
 **HTML visualizers:** just double-click the `.html` file to open it in your browser.
 
 ## 3. Course map
+
+### Module 0 - Setup
+
+| Day | Topic | You will learn |
+|---|---|---|
+| [00](Day_00_Setup_uv_and_Python/00_START_HERE.md) | **Setup: Python, uv and Your Project** | Install uv, create your project with `uv init`, install packages with `uv add`, and understand `pyproject.toml`, `uv.lock` and `.venv`. |
 
 ### Module 1 - How LLMs work
 
@@ -131,10 +135,11 @@ or start Jupyter with `uv run jupyter lab` from the course root.
 ```
 GenAI_Course/
 ├── README.md              <- you are here
-├── pyproject.toml         <- ONE uv project for the whole course
-├── .python-version        <- Python 3.12
+├── pyproject.toml         <- created by YOU on Day 00, grows every day with `uv add`
+├── .python-version        <- created on Day 00 (Python 3.12)
+├── instructor/            <- teacher's reference: tested pyproject.toml + uv.lock for every environment
 ├── .env.example           <- copy to .env and add your keys
-├── Day_01_... Day_38_...  <- one folder per day, each with 00_START_HERE.md
+├── Day_00_... Day_38_...  <- one folder per day, each with 00_START_HERE.md
 ├── shared_data/
 │   └── financial_pdfs/    <- JPM / EY annual reports (stored once, used by Days 14, 15, 29, 33, 34)
 └── Extras/                <- leftover images that no lesson uses

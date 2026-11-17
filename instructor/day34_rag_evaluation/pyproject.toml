@@ -1,0 +1,31 @@
+[project]
+name = "day34-rag-evaluation"
+version = "0.1.0"
+requires-python = ">=3.12, <3.13"
+dependencies = [
+    "boto3>=1.44.4",
+    "deepeval>=4.3.4",
+    "fastapi>=0.163.1",
+    "google-genai>=3.4.0",
+    "groq>=1.7.0",
+    "ipykernel>=7.4.0",
+    "langchain-google-genai>=4.5.0",
+    "langchain-groq>=1.2.0",
+    "langchain-openai>=1.8.0",
+    "langchain-text-splitters>=1.1.3",
+    "langsmith>=0.15.0",
+    "openai>=3.52.0",
+    "pdf2image>=1.17.0",
+    "pillow>=13.0.0",
+    "pypdf>=7.1.0",
+    "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.34",
+    "qdrant-client>=1.20.0",
+    "sentence-transformers>=6.3.0",
+    "streamlit>=1.67.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.apple.com/simple"
+default = true

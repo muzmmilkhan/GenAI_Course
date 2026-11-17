@@ -1,0 +1,19 @@
+[project]
+name = "day37-adk-deploy"
+version = "0.1.0"
+requires-python = ">=3.12, <3.13"
+dependencies = [
+    "cloudpickle>=3.1.2",
+    "fastapi>=0.163.1",
+    "google-adk>=2.14.1",
+    "google-cloud-aiplatform[adk,agent-engines]>=2.9.0",
+    "httpx>=0.28.1",
+    "ipykernel>=7.4.0",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.apple.com/simple"
+default = true

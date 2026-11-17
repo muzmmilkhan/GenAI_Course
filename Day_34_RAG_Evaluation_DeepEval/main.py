@@ -99,7 +99,7 @@ def cmd_compare(args):
 def cmd_ui(args):
     import subprocess
     print("Starting Streamlit Interactive Web Chatbot...")
-    subprocess.run(["streamlit", "run", "financial_rag/app.py"])
+    subprocess.run([sys.executable, "-m", "streamlit", "run", "financial_rag/app.py"])  # works on Windows too
 
 
 def cmd_api(args):
